@@ -1,0 +1,1189 @@
+#+TITLE: Peter Smith's emacs configuration file
+#+SEQ_TODO: FIXME FIXED 
+
+* General configuration
+** About this file
+   :PROPERTIES:
+   :CUSTOM_ID: babel-init
+   :END:
+<<babel-init>>
+
+This is my personal config. 
+
+I like using =(setq ...)= more than Customize because I can neatly
+organize my configuration that way. Ditto for =use-package= - I mostly
+use it to group together package-related config without lots of
+=with-eval-after-load= calls, and it also makes declaring keybindings
+easier.
+
+** Starting up
+
+Here's how we start:
+
+#+begin_src emacs-lisp :tangle yes
+;; This sets up the load path so that we can override it
+(package-initialize)
+(setq package-enable-at-startup t)
+
+(setq custom-file "~/.emacs.d/custom-settings.el")
+(load custom-file t)
+#+END_SRC
+
+** Personal information
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+(setq user-full-name "Peter Smith"
+      user-mail-address "mail@petersmith.org")
+#+END_SRC
+
+** Emacs initialization
+
+*** Add package sources
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+(unless (assoc-default "melpa" package-archives)
+  (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
+;  (package-refresh-contents)
+)
+#+END_SRC
+
+Use =M-x package-refresh-contents= to reload the list of packages
+after adding these for the first time.
+
+** General configuration
+*** My key bindings
+
+#+begin_src emacs-lisp :tangle yes
+
+(normal-erase-is-backspace-mode 0)
+;
+;; Some keys to make things easier
+;;
+(global-set-key [(shift delete)] 'clipboard-kill-region)
+(global-set-key [(control insert)] 'clipboard-kill-ring-save)
+(global-set-key [(shift insert)] 'clipboard-yank)
+
+
+;;quickly open my gtd file - "M-x gtd"
+;;
+(defun gtd ()
+        (interactive)
+        (find-file "~/NAS/Org/gtd.org")
+        )
+#+end_src
+
+*** Better-defaults
+
+Some of this was taken from https://github.com/technomancy/better-defaults/blob/master/better-defaults.el
+
+If working on two files with the same name, but in different locations, tweak the name to show that.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'uniquify)
+  (setq uniquify-buffer-name-style 'forward)
+;; Start the day of the week on a Monday
+(setq calendar-week-start-day 1)
+
+;; and lets use ido
+(setq ido-enable-flex-matching t)
+(setq ido-everywhere t)
+(ido-mode 1)
+
+#+end_src
+
+It's always good to be able to see matching parens
+
+#+begin_src emacs-lisp :tangle yes
+(show-paren-mode 1)
+#+end_src
+
+*** Libraries
+
+#+begin_src emacs-lisp :tangle yes
+;; (use-package dash)
+#+end_src
+
+*** Backups
+
+This is one of the things people usually want to change right away. By default, Emacs saves backup files in the current directory. These are the files ending in =~= that are cluttering up your directory lists. The following code stashes them all in =~/.emacs.d/backups=, where I can find them with =C-x C-f= (=find-file=) if I really need to.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+#+END_SRC
+
+Disk space is cheap. Save lots.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+(setq delete-old-versions t) ;; Ask to delete excess backup versions?
+(setq version-control t ;; Use version numbers for backups
+    kept-new-versions 16 ;; Number of newest versions to keep
+    kept-old-versions 2 ;; Number of oldest versions to keep
+)
+(setq vc-make-backup-files t)
+(setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list/" t)))
+#+END_SRC
+
+*** History
+
+From http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html:
+#+BEGIN_SRC emacs-lisp :tangle yes
+(setq savehist-file "~/.emacs.d/savehist")
+(savehist-mode 1)
+(setq history-length t)
+(setq history-delete-duplicates t)
+(setq savehist-save-minibuffer-history 1)
+(setq savehist-additional-variables
+      '(kill-ring
+        search-ring
+        regexp-search-ring))
+#+END_SRC
+
+** Windows configuration
+
+When you're starting out, the tool bar can be very helpful. [[http://sachachua.com/blog/2014/03/emacs-basics-using-mouse/][(Emacs Basics: Using the Mouse]]). Eventually, you may want to reclaim that extra little bit of screenspace. The following code turns that thing off. (Although I changed my mind about the menu - I want that again.)
+But skip the splash screen
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+;; (tool-bar-mode -1)
+(setq inhibit-splash-screen t)
+#+END_SRC
+
+
+In my world, sentences end with a single space. This makes
+sentence navigation commands work for me.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+(setq sentence-end-double-space nil)
+#+END_SRC
+
+*** Change "yes or no" to "y or n"
+
+Lazy people like me never want to type "yes" when "y" will suffice.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+(fset 'yes-or-no-p 'y-or-n-p)
+#+END_SRC
+
+*** Help - guide-key
+
+It's hard to remember keyboard shortcuts. The =guide-key= package pops up help after a short delay.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package guide-key
+  :defer t
+  :diminish guide-key-mode
+  :config
+  (progn
+  (setq guide-key/guide-key-sequence '("C-x r" "C-x 4" "C-c"))
+  (guide-key-mode 1)))  ; Enable guide-key-mode
+#+END_SRC
+
+*** UTF-8
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+(prefer-coding-system 'utf-8)
+
+(when (display-graphic-p)
+  (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
+#+END_SRC
+
+*** Windmove - switching between windows
+
+Windmove lets you move between windows with something more natural than cycling through =C-x o= (=other-window=).
+Windmove doesn't behave well with Org, so we need to use different keybindings.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package windmove
+  :bind
+  (("<f2> <right>" . windmove-right)
+   ("<f2> <left>" . windmove-left)
+   ("<f2> <up>" . windmove-up)
+   ("<f2> <down>" . windmove-down)
+   ))
+#+END_SRC
+
+*** Recent files
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+(require 'recentf)
+(setq recentf-max-saved-items 200
+      recentf-max-menu-items 15)
+(recentf-mode)
+#+END_SRC
+
+** Coding
+
+*** Tab width of 2 is compact and readable
+#+begin_src emacs-lisp :tangle yes
+    (setq-default tab-width 2)
+#+end_src
+
+*** New lines are always indented
+I almost always want to go to the right indentation on the next line.
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "RET") 'newline-and-indent)
+#+end_src
+
+** Line wrapping
+	 I like to have my lines wrapped (albeit visual) around about 75 characters
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'markdown-mode-hook 'visual-line-mode)
+
+#+end_src
+
+** Spelling
+Let's get our spelling rite.  This also sets up using mouse-3 instead of mouse-2 for fixing spelling errors; that gets over a problem with text being inserted from the X-windows paste buffer.
+
+#+begin_src emacs-lisp :tangle yes
+;; find aspell and hunspell automatically
+(cond
+ ;; try hunspell at first
+  ;; if hunspell does NOT exist, use aspell
+ ((executable-find "hunspell")
+  (setq ispell-program-name "hunspell")
+  (setq ispell-local-dictionary "en_GB")
+  (setq ispell-local-dictionary-alist
+        ;; Please note the list `("-d" "en_GB")` contains ACTUAL parameters passed to hunspell
+        ;; You could use `("-d" "en_GB,en_US-med")` to check with multiple dictionaries
+        '(("en_GB" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_GB") nil utf-8)
+          )))
+
+ ((executable-find "aspell")
+  (setq ispell-program-name "aspell")
+  ;; Please note ispell-extra-args contains ACTUAL parameters passed to aspell
+  (setq ispell-extra-args '("--sug-mode=ultra" "--lang=en_US"))))
+
+(autoload 'flyspell-mode "flyspell" "On-the-fly spelling checker." t)
+(add-hook 'LaTeX-mode-hook 'flyspell-mode)
+(add-hook 'org-mode-hook 'flyspell-mode)
+(add-hook 'markdown-mode-hook 'flyspell-mode)
+
+(flyspell-mode 1)
+
+(define-key flyspell-mouse-map [down-mouse-3] #'flyspell-correct-word)
+#+end_src
+
+* Markdown-mode
+Who doesn't love markdown mode. I know I do. Go for GitHub markdown as necessary.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package markdown-mode
+  :ensure t
+  :commands (markdown-mode gfm-mode)
+  :mode (("README\\.md\\'" . gfm-mode)
+         ("\\.md\\'" . markdown-mode)
+         ("\\.Rmd\\'" . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode))
+  :init (setq markdown-command "multimarkdown"))
+#+end_src
+
+Some code to render `README.md` more like github when I do `C-c C-c v` (Markdown->Export & View)
+#+begin_src emacs-lisp :tangle yes
+(setq markdown-command 
+    "pandoc -c file:///home/psmith/NAS/Templates/marked/github-pandoc.css --from markdown_github -t html5 --mathjax --highlight-style pygments --standalone")
+#+end_src
+
+* eMail with mu4e
+
+#+begin_src emacs-lisp :tangle yes
+(require 'mu4e)
+
+;; these are actually the defaults
+(setq
+  mu4e-maildir       "/usr/home/psmith/NAS/Backups/Maildir"   ;; top-level Maildir
+  mu4e-sent-folder   "/sent"       ;; folder for sent messages
+  mu4e-drafts-folder "/drafts"     ;; unfinished messages
+  mu4e-trash-folder  "/trash"      ;; trashed messages
+  mu4e-refile-folder "/archive")   ;; saved messages
+
+
+(setq mu4e-attachment-dir  "~/NAS/Downloads")
+
+;;store org-mode links to messages
+(require 'org-mu4e)
+
+;;store link to message if in header view, not to header query
+(setq org-mu4e-link-query-in-headers-mode nil)
+
+;; And do the right thing in storing and caputuring
+(define-key mu4e-headers-mode-map (kbd "C-c c") 'org-mu4e-store-and-capture)
+(define-key mu4e-view-mode-map    (kbd "C-c c") 'org-mu4e-store-and-capture)
+
+;; and display images
+;; enable inline images
+(setq mu4e-view-show-images t)
+;; use imagemagick, if available
+(when (fboundp 'imagemagick-register-types)
+  (imagemagick-register-types))
+
+#+end_src
+
+* mu4e and sending email
+
+#+begin_src emacs-lisp :tangle yes
+
+;; tell message-mode how to send mail
+(setq message-send-mail-function 'smtpmail-send-it)
+
+;; Set up the contexts I need
+
+(setq mu4e-contexts
+    `( ,(make-mu4e-context
+          :name "PeterSmith"
+          :enter-func (lambda () (mu4e-message "Switch to the petersmith context"))
+          :leave-func (lambda () (mu4e-message "Leaving petersmith context"))
+          ;; we match based on the contact-fields of the message
+          :match-func (lambda (msg)
+                        (when msg 
+                          (mu4e-message-contact-field-matches msg 
+                            :to "mail@petersmith.org")))
+          :vars '( ( user-mail-address      . "mail@petersmith.org"  )
+                   ( user-full-name         . "Peter Smith" )
+                   ( mu4e-compose-signature .
+                     (concat
+                       "Peter Smith\n"
+                       "\n"))
+										 
+                   ;; SMTP configuration
+                   ( starttls-use-gnutls . t)
+                   ( smtpmail-starttls-credentials
+									                    '(("smtp.sendgrid.net" 587 nil nil)))
+									 ( smtpmail-auth-credentials (expand-file-name "~/.authinfo.gpg")
+                   ( smtpmail-smtp-server . "smtp.sendgrid.net")
+                   ( smtpmail-smtp-service . 587)	
+									 ))
+			,(make-mu4e-context
+          :name "66uqs"
+          :enter-func (lambda () (mu4e-message "Entering 66uqs context"))
+          :leave-func (lambda () (mu4e-message "Leaving 66uqs context"))
+          ;; we match based on the contact-fields of the message
+          :match-func (lambda (msg)
+                        (when msg 
+                          (mu4e-message-contact-field-matches msg 
+                            :to "psmith@66uqs.org")))
+          :vars '( ( user-mail-address      . "psmith@66uqs.org"  )
+                   ( user-full-name         . "Peter Smith" )
+                   ( mu4e-compose-signature .
+                     (concat
+                       "Peter Smith\n"
+                       "\n"))
+                   ;; SMTP configuration
+                   ( starttls-use-gnutls . t)
+                   ( smtpmail-starttls-credentials
+									                    '(("smtp.sendgrid.net" 587 nil nil)))
+									 ( smtpmail-auth-credentials (expand-file-name "~/.authinfo.gpg")
+                   ( smtpmail-smtp-server . "smtp.sendgrid.net")
+                   ( smtpmail-smtp-service . 587)	
+									 ( smtpmail-debug-info t)))
+       ,(make-mu4e-context
+          :name "Consulting"
+          :enter-func (lambda () (mu4e-message "Switch to the consulting context"))
+          ;; no leave-func
+          ;; we match based on the contact-fields of the message
+          :match-func (lambda (msg)
+                        (when msg 
+                          (mu4e-message-contact-field-matches msg 
+                            :to "psmith@consulting.co.nz")))
+           :vars '( ( user-mail-address      . "psmith@66consulting.co.nz"  )
+                   ( user-full-name         . "Peter Smith" )
+                   ( mu4e-compose-signature .
+                     (concat
+                       "Peter Smith\n"
+                       "\n"))
+                   ;; SMTP configuration
+                   ( starttls-use-gnutls . t)
+                   ( smtpmail-starttls-credentials
+									                    '(("smtp.sendgrid.net" 587 nil nil)))
+									 ( smtpmail-auth-credentials (expand-file-name "~/.authinfo.gpg")
+                   ( smtpmail-smtp-server . "smtp.sendgrid.net")
+                   ( smtpmail-smtp-service . 587)	
+									 ( smtpmail-debug-info t)
+									 ))
+			,(make-mu4e-context
+          :name "UoA"
+          :enter-func (lambda () (mu4e-message "Entering University context"))
+          :leave-func (lambda () (mu4e-message "Leaving University context"))
+          ;; we match based on the contact-fields of the message
+          :match-func (lambda (msg)
+                        (when msg 
+                          (mu4e-message-contact-field-matches msg 
+                            :to "p.smith@auckland.ac.nz")))
+          :vars '( ( user-mail-address      . "p.smith@auckland.ac.nz"  )
+                   ( user-full-name         . "Peter Smith" )
+                   ( mu4e-compose-signature .
+                     (concat
+                       "Peter Smith\n"
+                       "\n"))
+                   ;; SMTP configuration
+                   ( starttls-use-gnutls . t)
+                   ( smtpmail-starttls-credentials
+									                    '(("mailhost.auckland.ac.nz" 587 nil nil)))
+									 ( smtpmail-auth-credentials (expand-file-name "~/.authinfo.gpg")
+                   ( smtpmail-smtp-server . "mailhost.auckland.ac.nz")
+                   ( smtpmail-smtp-service . 587)	
+									 ( smtpmail-debug-info t)))))
+  
+
+  ;; set `mu4e-context-policy` and `mu4e-compose-policy` to tweak when mu4e should
+  ;; guess or ask the correct context, e.g.
+
+  ;; start with the first (default) context; 
+  ;; default is to ask-if-none (ask when there's no context yet, and none match)
+  ;; (setq mu4e-context-policy 'pick-first)
+
+  ;; compose with the current context is no context matches;
+  ;; default is to ask 
+  ;; (setq mu4e-compose-context-policy nil)
+
+
+#+end_src
+
+* Org-mode
+
+Org-mode! The reason I started using emacs in the first place.
+
+I load `org` in my init.el, to make this type of file possible.
+
+** Key bindings
+
+Set up some useful key bindings
+
+#+begin_src emacs-lisp :tangle yes
+
+(require 'org) ;; just in case
+;;
+;; Standard key bindings
+(global-set-key "\C-cl" 'org-store-link)
+(global-set-key "\C-ca" 'org-agenda)
+(global-set-key "\C-cb" 'org-iswitchb)
+(global-set-key "\C-cc" 'org-capture)
+(global-set-key (kbd "<f12>") 'org-agenda)
+(global-set-key (kbd "<f10>") 'org-archive-subtree-default)
+
+
+#+end_src
+
+** Configurations
+
+Then I set up things so org-mode applies to .org and .org_archive files.
+
+#+begin_src emacs-lisp :tangle yes
+
+;; Capturing stuff
+(setq org-directory "~/NAS/Org")
+(setq org-default-notes-file "~/NAS/Org/refile.org")
+(setq org-agenda-files (list "~/NAS/Org"))
+
+(add-to-list 'auto-mode-alist '("\\.\\(org\\|org_archive\\)$" . org-mode))
+
+(setq org-agenda-start-on-weekday 1) ; The week starts on Monday
+(setq org-sort-agenda-notime-is-late nil)
+(setq org-time-stamp-custom-formats (quote ("<%d/%m/%y %a>" . "<%d/%m/%y %a %H:%M>")))
+
+;; Always hilight the current agenda line
+(add-hook 'org-agenda-mode-hook
+          '(lambda () (hl-line-mode 1))
+          'append)
+
+#+end_src
+
+** Refiling
+#+BEGIN_src emacs-lisp :tangle yes
+; Targets include this file and any file contributing to the agenda - up to 4 levels deep
+(setq org-refile-targets (quote ((nil :maxlevel . 4)
+                                 (org-agenda-files :maxlevel . 4))))
+
+; Use full outline paths for refile targets - we file directly with IDO
+(setq org-refile-use-outline-path t)
+
+; Targets complete directly with IDO
+(setq org-outline-path-complete-in-steps nil)
+
+#+END_src
+
+** Tasks and states
+I use one set of TODO keywords for all of my org files. Org-mode lets you define TODO keywords per file but I find it's easier to have a standard set of TODO keywords globally so I can use the same setup in any org file I'm working with.
+
+The only exception to this is this document; since I don't want org-mode hiding the TODO keyword when it appears in headlines. I've set up a dummy #+SEQ_TODO: FIXME FIXED entry at the top of this file just to leave my TODO keyword untouched in this document.
+
+**** TODO key words
+ #+begin_src emacs-lisp :tangle yes
+ (setq org-todo-keywords
+       (quote ((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
+               (sequence "WAITING(w@/!)" "HOLD(h@/!)" "|" "CANCELLED(c@/!)" "PHONE"))))
+
+ (setq org-todo-keyword-faces
+       (quote (("TODO" :foreground "red" :weight bold)
+               ("NEXT" :foreground "blue" :weight bold)
+               ("DONE" :foreground "forest green" :weight bold)
+               ("WAITING" :foreground "orange" :weight bold)
+               ("HOLD" :foreground "magenta" :weight bold)
+               ("CANCELLED" :foreground "forest green" :weight bold)
+               ("PHONE" :foreground "forest green" :weight bold))))
+ #+end_src
+
+**** Fast Todo Selection
+
+ Fast todo selection allows changing from any task todo state to any other state directly by selecting the appropriate key from the fast todo selection key menu. This is a great feature!
+
+ Changing a task state is done with C-c C-t KEY
+
+ where KEY is the appropriate fast todo state selection key as defined in org-todo-keywords.
+
+ The setting allows changing todo states with S-left and S-right skipping all of the normal processing when entering or leaving a todo state. This cycles through the todo states but skips setting timestamps and entering notes which is very convenient when all you want to do is fix up the status of an entry.
+
+ #+begin_src emacs-lisp :tangle yes
+ (setq org-use-fast-todo-selection t)
+
+ (setq org-treat-S-cursor-todo-selection-as-state-change nil)
+ #+end_src
+
+** Agenda views
+Try and get everything I need on to one page.
+#+BEGIN_SRC emacs-lisp :tangle yes
+;; Do not dim blocked tasks
+(setq org-agenda-dim-blocked-tasks nil)
+
+;; Compact the block agenda view
+(setq org-agenda-compact-blocks t)
+
+;; Custom agenda command definitions
+
+(setq org-agenda-custom-commands
+      (quote (("N" "Notes" tags "NOTE"
+               ((org-agenda-overriding-header "Notes")
+                (org-tags-match-list-sublevels t)))
+              (" " "Agenda"
+               ((agenda "" nil)
+                (tags "REFILE"
+                      ((org-agenda-overriding-header "Tasks to Refile")
+                       (org-tags-match-list-sublevels nil)))
+                (tags-todo "-CANCELLED/!"
+                           ((org-agenda-overriding-header "Stuck Projects")
+                            (org-agenda-skip-function 'bh/skip-non-stuck-projects)
+                            (org-agenda-sorting-strategy
+                             '(category-keep))))
+                (tags-todo "-HOLD-CANCELLED/!"
+                           ((org-agenda-overriding-header "Projects")
+                            (org-agenda-skip-function 'bh/skip-non-projects)
+                            (org-tags-match-list-sublevels 'indented)
+                            (org-agenda-sorting-strategy
+                             '(category-keep))))
+                (tags-todo "-CANCELLED/!NEXT"
+                           ((org-agenda-overriding-header (concat "Project Next Tasks"
+                                                                  (if bh/hide-scheduled-and-waiting-next-tasks
+                                                                      ""
+                                                                    " (including WAITING and SCHEDULED tasks)")))
+                            (org-agenda-skip-function 'bh/skip-projects-and-habits-and-single-tasks)
+                            (org-tags-match-list-sublevels t)
+                            (org-agenda-todo-ignore-scheduled bh/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-todo-ignore-deadlines bh/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-todo-ignore-with-date bh/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-sorting-strategy
+                             '(todo-state-down effort-up category-keep))))
+                (tags-todo "-REFILE-CANCELLED-WAITING-HOLD/!"
+                           ((org-agenda-overriding-header (concat "Project Subtasks"
+                                                                  (if bh/hide-scheduled-and-waiting-next-tasks
+                                                                      ""
+                                                                    " (including WAITING and SCHEDULED tasks)")))
+                            (org-agenda-skip-function 'bh/skip-non-project-tasks)
+                            (org-agenda-todo-ignore-scheduled bh/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-todo-ignore-deadlines bh/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-todo-ignore-with-date bh/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-sorting-strategy
+                             '(category-keep))))
+                (tags-todo "-REFILE-CANCELLED-WAITING-HOLD/!"
+                           ((org-agenda-overriding-header (concat "Standalone Tasks"
+                                                                  (if bh/hide-scheduled-and-waiting-next-tasks
+                                                                      ""
+                                                                    " (including WAITING and SCHEDULED tasks)")))
+                            (org-agenda-skip-function 'bh/skip-project-tasks)
+                            (org-agenda-todo-ignore-scheduled bh/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-todo-ignore-deadlines bh/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-todo-ignore-with-date bh/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-sorting-strategy
+                             '(category-keep))))
+                (tags-todo "-CANCELLED+WAITING|HOLD/!"
+                           ((org-agenda-overriding-header (concat "Waiting and Postponed Tasks"
+                                                                  (if bh/hide-scheduled-and-waiting-next-tasks
+                                                                      ""
+                                                                    " (including WAITING and SCHEDULED tasks)")))
+                            (org-agenda-skip-function 'bh/skip-non-tasks)
+                            (org-tags-match-list-sublevels nil)
+                            (org-agenda-todo-ignore-scheduled bh/hide-scheduled-and-waiting-next-tasks)
+                            (org-agenda-todo-ignore-deadlines bh/hide-scheduled-and-waiting-next-tasks)))
+                (tags "-REFILE/"
+                      ((org-agenda-overriding-header "Tasks to Archive")
+                       (org-agenda-skip-function 'bh/skip-non-archivable-tasks)
+                       (org-tags-match-list-sublevels nil))))
+               nil))))
+
+#+END_SRC
+
+And then some code to handle the heavy lifting with agenda views.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defun bh/skip-non-archivable-tasks ()
+  "Skip trees that are not available for archiving"
+  (save-restriction
+    (widen)
+    ;; Consider only tasks with done todo headings as archivable candidates
+    (let ((next-headline (save-excursion (or (outline-next-heading) (point-max))))
+          (subtree-end (save-excursion (org-end-of-subtree t))))
+      (if (member (org-get-todo-state) org-todo-keywords-1)
+          (if (member (org-get-todo-state) org-done-keywords)
+              (let* ((daynr (string-to-int (format-time-string "%d" (current-time))))
+                     (a-month-ago (* 60 60 24 (+ daynr 1)))
+                     (last-month (format-time-string "%Y-%m-" (time-subtract (current-time) (seconds-to-time a-month-ago))))
+                     (this-month (format-time-string "%Y-%m-" (current-time)))
+                     (subtree-is-current (save-excursion
+                                           (forward-line 1)
+                                           (and (< (point) subtree-end)
+                                                (re-search-forward (concat last-month "\\|" this-month) subtree-end t)))))
+                (if subtree-is-current
+                    subtree-end ; Has a date in this month or last month, skip it
+                  nil))  ; available to archive
+            (or subtree-end (point-max)))
+        next-headline))))
+
+(defun bh/is-project-p ()
+  "Any task with a todo keyword subtask"
+  (save-restriction
+    (widen)
+    (let ((has-subtask)
+          (subtree-end (save-excursion (org-end-of-subtree t)))
+          (is-a-task (member (nth 2 (org-heading-components)) org-todo-keywords-1)))
+      (save-excursion
+        (forward-line 1)
+        (while (and (not has-subtask)
+                    (< (point) subtree-end)
+                    (re-search-forward "^\*+ " subtree-end t))
+          (when (member (org-get-todo-state) org-todo-keywords-1)
+            (setq has-subtask t))))
+      (and is-a-task has-subtask))))
+
+(defun bh/is-project-subtree-p ()
+  "Any task with a todo keyword that is in a project subtree.
+Callers of this function already widen the buffer view."
+  (let ((task (save-excursion (org-back-to-heading 'invisible-ok)
+                              (point))))
+    (save-excursion
+      (bh/find-project-task)
+      (if (equal (point) task)
+          nil
+        t))))
+
+(defun bh/is-task-p ()
+  "Any task with a todo keyword and no subtask"
+  (save-restriction
+    (widen)
+    (let ((has-subtask)
+          (subtree-end (save-excursion (org-end-of-subtree t)))
+          (is-a-task (member (nth 2 (org-heading-components)) org-todo-keywords-1)))
+      (save-excursion
+        (forward-line 1)
+        (while (and (not has-subtask)
+                    (< (point) subtree-end)
+                    (re-search-forward "^\*+ " subtree-end t))
+          (when (member (org-get-todo-state) org-todo-keywords-1)
+            (setq has-subtask t))))
+      (and is-a-task (not has-subtask)))))
+
+(defun bh/is-subproject-p ()
+  "Any task which is a subtask of another project"
+  (let ((is-subproject)
+        (is-a-task (member (nth 2 (org-heading-components)) org-todo-keywords-1)))
+    (save-excursion
+      (while (and (not is-subproject) (org-up-heading-safe))
+        (when (member (nth 2 (org-heading-components)) org-todo-keywords-1)
+          (setq is-subproject t))))
+    (and is-a-task is-subproject)))
+
+(defun bh/list-sublevels-for-projects-indented ()
+  "Set org-tags-match-list-sublevels so when restricted to a subtree we list all subtasks.
+  This is normally used by skipping functions where this variable is already local to the agenda."
+  (if (marker-buffer org-agenda-restrict-begin)
+      (setq org-tags-match-list-sublevels 'indented)
+    (setq org-tags-match-list-sublevels nil))
+  nil)
+
+(defun bh/list-sublevels-for-projects ()
+  "Set org-tags-match-list-sublevels so when restricted to a subtree we list all subtasks.
+  This is normally used by skipping functions where this variable is already local to the agenda."
+  (if (marker-buffer org-agenda-restrict-begin)
+      (setq org-tags-match-list-sublevels t)
+    (setq org-tags-match-list-sublevels nil))
+  nil)
+
+(defvar bh/hide-scheduled-and-waiting-next-tasks t)
+
+(defun bh/toggle-next-task-display ()
+  (interactive)
+  (setq bh/hide-scheduled-and-waiting-next-tasks (not bh/hide-scheduled-and-waiting-next-tasks))
+  (when  (equal major-mode 'org-agenda-mode)
+    (org-agenda-redo))
+  (message "%s WAITING and SCHEDULED NEXT Tasks" (if bh/hide-scheduled-and-waiting-next-tasks "Hide" "Show")))
+
+(defun bh/skip-stuck-projects ()
+  "Skip trees that are not stuck projects"
+  (save-restriction
+    (widen)
+    (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
+      (if (bh/is-project-p)
+          (let* ((subtree-end (save-excursion (org-end-of-subtree t)))
+                 (has-next ))
+            (save-excursion
+              (forward-line 1)
+              (while (and (not has-next) (< (point) subtree-end) (re-search-forward "^\\*+ NEXT " subtree-end t))
+                (unless (member "WAITING" (org-get-tags-at))
+                  (setq has-next t))))
+            (if has-next
+                nil
+              next-headline)) ; a stuck project, has subtasks but no next task
+        nil))))
+
+(defun bh/skip-non-stuck-projects ()
+  "Skip trees that are not stuck projects"
+  ;; (bh/list-sublevels-for-projects-indented)
+  (save-restriction
+    (widen)
+    (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
+      (if (bh/is-project-p)
+          (let* ((subtree-end (save-excursion (org-end-of-subtree t)))
+                 (has-next ))
+            (save-excursion
+              (forward-line 1)
+              (while (and (not has-next) (< (point) subtree-end) (re-search-forward "^\\*+ NEXT " subtree-end t))
+                (unless (member "WAITING" (org-get-tags-at))
+                  (setq has-next t))))
+            (if has-next
+                next-headline
+              nil)) ; a stuck project, has subtasks but no next task
+        next-headline))))
+
+(defun bh/skip-non-projects ()
+  "Skip trees that are not projects"
+  ;; (bh/list-sublevels-for-projects-indented)
+  (if (save-excursion (bh/skip-non-stuck-projects))
+      (save-restriction
+        (widen)
+        (let ((subtree-end (save-excursion (org-end-of-subtree t))))
+          (cond
+           ((bh/is-project-p)
+            nil)
+           ((and (bh/is-project-subtree-p) (not (bh/is-task-p)))
+            nil)
+           (t
+            subtree-end))))
+    (save-excursion (org-end-of-subtree t))))
+
+(defun bh/skip-non-tasks ()
+  "Show non-project tasks.
+Skip project and sub-project tasks, habits, and project related tasks."
+  (save-restriction
+    (widen)
+    (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
+      (cond
+       ((bh/is-task-p)
+        nil)
+       (t
+        next-headline)))))
+
+(defun bh/skip-project-trees-and-habits ()
+  "Skip trees that are projects"
+  (save-restriction
+    (widen)
+    (let ((subtree-end (save-excursion (org-end-of-subtree t))))
+      (cond
+       ((bh/is-project-p)
+        subtree-end)
+       (t
+        nil)))))
+
+(defun bh/skip-projects-and-habits-and-single-tasks ()
+  "Skip trees that are projects, tasks that are habits, single non-project tasks"
+  (save-restriction
+    (widen)
+    (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
+      (cond
+       ((and bh/hide-scheduled-and-waiting-next-tasks
+             (member "WAITING" (org-get-tags-at)))
+        next-headline)
+       ((bh/is-project-p)
+        next-headline)
+       ((and (bh/is-task-p) (not (bh/is-project-subtree-p)))
+        next-headline)
+       (t
+        nil)))))
+
+(defun bh/skip-project-tasks-maybe ()
+  "Show tasks related to the current restriction.
+When restricted to a project, skip project and sub project tasks, habits, NEXT tasks, and loose tasks.
+When not restricted, skip project and sub-project tasks, habits, and project related tasks."
+  (save-restriction
+    (widen)
+    (let* ((subtree-end (save-excursion (org-end-of-subtree t)))
+           (next-headline (save-excursion (or (outline-next-heading) (point-max))))
+           (limit-to-project (marker-buffer org-agenda-restrict-begin)))
+      (cond
+       ((bh/is-project-p)
+        next-headline)
+       ((and (not limit-to-project)
+             (bh/is-project-subtree-p))
+        subtree-end)
+       ((and limit-to-project
+             (bh/is-project-subtree-p)
+             (member (org-get-todo-state) (list "NEXT")))
+        subtree-end)
+       (t
+        nil)))))
+
+(defun bh/skip-project-tasks ()
+  "Show non-project tasks.
+Skip project and sub-project tasks, habits, and project related tasks."
+  (save-restriction
+    (widen)
+    (let* ((subtree-end (save-excursion (org-end-of-subtree t))))
+      (cond
+       ((bh/is-project-p)
+        subtree-end)
+       ((bh/is-project-subtree-p)
+        subtree-end)
+       (t
+        nil)))))
+
+(defun bh/skip-non-project-tasks ()
+  "Show project tasks.
+Skip project and sub-project tasks, habits, and loose non-project tasks."
+  (save-restriction
+    (widen)
+    (let* ((subtree-end (save-excursion (org-end-of-subtree t)))
+           (next-headline (save-excursion (or (outline-next-heading) (point-max)))))
+      (cond
+       ((bh/is-project-p)
+        next-headline)
+       ((and (bh/is-project-subtree-p)
+             (member (org-get-todo-state) (list "NEXT")))
+        subtree-end)
+       ((not (bh/is-project-subtree-p))
+        subtree-end)
+       (t
+        nil)))))
+
+(defun bh/skip-projects-and-habits ()
+  "Skip trees that are projects and tasks that are habits"
+  (save-restriction
+    (widen)
+    (let ((subtree-end (save-excursion (org-end-of-subtree t))))
+      (cond
+       ((bh/is-project-p)
+        subtree-end)
+       (t
+        nil)))))
+
+(defun bh/skip-non-subprojects ()
+  "Skip trees that are not projects"
+  (let ((next-headline (save-excursion (outline-next-heading))))
+    (if (bh/is-subproject-p)
+        nil
+      next-headline)))
+
+(defun bh/find-project-task ()
+  "Move point to the parent (project) task if any"
+  (save-restriction
+    (widen)
+    (let ((parent-task (save-excursion (org-back-to-heading 'invisible-ok) (point))))
+      (while (org-up-heading-safe)
+        (when (member (nth 2 (org-heading-components)) org-todo-keywords-1)
+          (setq parent-task (point))))
+      (goto-char parent-task)
+      parent-task)))
+#+END_SRC
+** Other misc settings
+
+#+begin_src emacs-lisp :tangle yes
+
+(setq org-remember-templates
+      '(("Todo" ?t "* TODO %?\n  %i\n  %a" "~/NAS/Org/gtd.org" "Tasks")
+        ("Journal" ?j "* %U %?\n\n  %i\n  %a" "~/NAS/Org/journal.org")
+        ("Idea" ?i "* %^{Title}\n  %i\n  %a" "~/NAS/Org/journal.org" "New Ideas")))
+
+
+
+(setq org-todo-state-tags-triggers
+      (quote (("CANCELLED" ("CANCELLED" . t))
+              ("WAITING" ("WAITING" . t))
+              ("HOLD" ("WAITING" . t) ("HOLD" . t))
+              (done ("WAITING") ("HOLD"))
+              ("TODO" ("WAITING") ("CANCELLED") ("HOLD"))
+              ("NEXT" ("WAITING") ("CANCELLED") ("HOLD"))
+              ("DONE" ("WAITING") ("CANCELLED") ("HOLD")))))
+;;
+;; Disable the default stuck project handling
+(setq org-stuck-projects (quote ("" nil nil "")))
+
+;; Org-bibtex
+;;	
+;; Adding a line like the following is enough to tell org-mode which .bib file to consult:
+;;
+;; #+BIBLIOGRAPHY: refs plain
+;; refs is the name of the BibTeX file (.bib extension omitted), and plain is the bibliographystyle.
+;;
+;; You can then call org-reftex-citation (bound to C-c C-x [ by default) to insert references.
+;; 
+;; From the documentation:
+;; 
+;; (org-reftex-citation)
+;; 
+;; Use reftex-citation to insert a citation into the buffer. This looks for a line like
+;; 
+;; #+BIBLIOGRAPHY: foo plain option:-d
+;; 
+;; and derives from it that foo.bib is the bibliography file relevant for this document. It then installs the necessary environment for RefTeX to work in this buffer and calls reftex-citation to insert a citation into the buffer.
+;; 
+;; Export of such citations to both LaTeX and HTML is handled by the contributed package ox-bibtex by Taru Karttunen.
+
+(require 'org)
+(require 'ox-bibtex)
+;;
+
+;; Enable the export to Markdown
+(eval-after-load "org"
+  '(require 'ox-md nil t))
+#+end_src
+
+** Adding new tasks quickly
+Org Capture mode replaces remember mode for capturing tasks and notes.
+
+To add new tasks efficiently I use a minimal number of capture
+templates. I used to have lots of capture templates, one for each
+org-file. I'd start org-capture with C-c c and then pick a template
+that filed the task under * Tasks in the appropriate file.
+
+I found I still needed to refile these capture tasks again to the
+correct location within the org-file so all of these different capture
+templates weren't really helping at all. Since then I've changed my
+workflow to use a minimal number of capture templates – I create the
+new task quickly and refile it once. This also saves me from
+maintaining my org-capture templates when I add a new org
+
+#+begin_src emacs-lisp :tangle yes
+;; Capture templates for: TODO tasks, Notes, appointments, phone calls, and org-protocol
+(setq org-capture-templates
+      (quote (("t" "todo" entry (file "~/NAS/Org/refile.org")
+							 "* TODO [#A] %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+2d\"))\n %i\n %a")
+              ("r" "respond" entry (file "~/NAS/Org/refile.org")
+               "* NEXT Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n")
+              ("n" "note" entry (file "~/NAS/Org/refile.org")
+               "* %? :NOTE:\n%U\n%a\n")
+              ("j" "Journal/Blog" entry (file+datetree "~/NAS/Org/journal.org")
+               "* %?\n%U\n")
+              ("w" "org-protocol" entry (file "~/NAS/Org/refile.org")
+               "* TODO Review %c\n%U\n")
+              ("p" "Phone call" entry (file "~/NAS/Org/refile.org")
+               "* PHONE %? :PHONE:\n%U")
+              ("h" "Habit" entry (file "~/NAS/Org/refile.org")
+               "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"<%Y-%m-%d %a .+1d/3d>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n"))))
+
+
+#+end_src
+** Archiving
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-archive-mark-done nil)
+(setq org-archive-location "%s_archive::* Archived Tasks")
+#+end_src
+
+* Hugo mode
+
+
+
+#+begin_src emacs-lisp :tangle yes
+(setq hugo-base-dir "~/NAS/Programming/Websites-source/petersmith/"
+      hugo-buffer "*hugo*")
+
+(defun hugo-new-post ()
+  (interactive)
+  (let* ((title (read-from-minibuffer "Title: "))
+         (filename (concat "blog/" 
+                           (read-from-minibuffer "Filename: "
+                                                 (replace-regexp-in-string "-\\.md" ".md"
+                                                   (concat (today-is) (downcase
+                                                            (replace-regexp-in-string "[^a-z0-9]+" "-"
+                                                                                      title))
+                                                           ".md")))))
+         (path (concat hugo-base-dir "content/" filename)))
+    (if (file-exists-p path)
+        (message "File already exists!")
+		  (hugo-command "new" filename)
+      (find-file path)
+      (hugo-replace-key "title" title)
+      (goto-char (point-max))
+			(save-buffer))))
+
+(defun today-is ()
+  (format-time-string "%Y%m%d-"))
+
+(defun hugo-command (&rest args)
+  (let ((default-directory (expand-file-name hugo-base-dir)))
+    (apply 'call-process "hugo" nil hugo-buffer t args)))
+
+(defun hugo-replace-key (key val)
+  (save-excursion
+    (goto-char (point-min))
+    ; quoted value
+    (if (and (re-search-forward (concat key " = \"") nil t)
+               (re-search-forward "[^\"]+" (line-end-position) t))
+        (or (replace-match val) t) ; ensure we return t
+      ; unquoted value
+      (when (and (re-search-forward (concat key " = ") nil t)
+                 (re-search-forward ".+" (line-end-position) t))
+        (or (replace-match val) t)))))
+
+
+(defun hugo-publish ()
+  (interactive)
+  (let* ((default-directory (concat (expand-file-name hugo-base-dir) "/")))
+    (when (call-process "bash" nil hugo-buffer t  "./Scripts/deploySite.sh")
+      (message "Blog published"))))
+
+#+end_src
+
+
+
+* Reftex
+
+I need references ... they are automagically exported from Zotero to my .bib
+
+This hooks in reftex and allows pandoc/markdown formatted citations to be inserted.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'reftex)
+
+(setq reftex-default-bibliography '("~/NAS/Work/Research/Citations/bibs/psmithLibrary.bib"))
+(setq reftex-bibliography-commands '("bibliography" "nobibliography" "addbibresource"))
+
+(add-hook 'LaTeX-mode-hook 'turn-on-reftex)   ; with AUCTeX LaTeX mode
+(add-hook 'latex-mode-hook 'turn-on-reftex)   ; with Emacs latex mode
+
+(autoload 'reftex-mode     "reftex" "RefTeX Minor Mode" t)
+(autoload 'turn-on-reftex  "reftex" "RefTeX Minor Mode" nil)
+(autoload 'reftex-citation "reftex-cite" "Make citation" nil)
+(autoload 'reftex-index-phrase-mode "reftex-index" "Phrase mode" t)
+
+;; Make RefTeX faster
+(setq reftex-enable-partial-scans t)
+(setq reftex-save-parse-info t)
+(setq reftex-use-multiple-selection-buffers t)
+(setq reftex-plug-into-AUCTeX t)
+
+
+
+;; define markdown citation formats
+(defvar markdown-cite-format)
+(setq markdown-cite-format
+      '(
+        (?\C-m . "[@%l]")
+        (?p . "[@%l]")
+        (?t . "@%l")
+        )
+      )
+
+;; wrap reftex-citation with local variables for markdown format
+(defun markdown-reftex-citation ()
+  (interactive)
+  (let ((reftex-cite-format markdown-cite-format)
+        (reftex-cite-key-separator "; @"))
+    (reftex-citation)))
+
+
+;; bind modified reftex-citation to C-c[, without enabling reftex-mode
+;; https://www.gnu.org/software/auctex/manual/reftex/Citations-Outside-LaTeX.html#SEC31
+(add-hook
+ 'markdown-mode-hook
+ (lambda ()
+   (define-key markdown-mode-map "\C-c[" 'markdown-reftex-citation)))
+
+
+
+;; Make RefTeX work with Org-Mode
+;; use 'C-c (' instead of 'C-c [' because the latter is already
+;; defined in orgmode to the add-to-agenda command.
+(defun org-mode-reftex-setup ()
+  (load-library "reftex") 
+  (and (buffer-file-name)
+  (file-exists-p (buffer-file-name))
+  (reftex-parse-all))
+  (define-key org-mode-map (kbd "C-c (") 'reftex-citation))
+
+(add-hook 'org-mode-hook 'org-mode-reftex-setup)
+
+;; RefTeX formats for biblatex (not natbib)
+(setq reftex-cite-format
+      '(
+        (?\C-m . "\\cite[]{%l}")
+        (?t . "\\textcite{%l}")
+        (?a . "\\autocite[]{%l}")
+        (?p . "\\parencite{%l}")
+        (?f . "\\footcite[][]{%l}")
+        (?F . "\\fullcite[]{%l}")
+        (?x . "[]{%l}")
+        (?X . "{%l}")
+        ))
+
+(setq font-latex-match-reference-keywords
+      '(("cite" "[{")
+        ("cites" "[{}]")
+        ("autocite" "[{")
+        ("footcite" "[{")
+        ("footcites" "[{")
+        ("parencite" "[{")
+        ("textcite" "[{")
+        ("fullcite" "[{") 
+        ("citetitle" "[{") 
+        ("citetitles" "[{") 
+        ("headlessfullcite" "[{")))
+
+(setq reftex-cite-prompt-optional-args nil)
+(setq reftex-cite-cleanup-optional-args t)
+
+
+(setq org-latex-pdf-process
+  '("latexmk -pdflatex='pdflatex -interaction nonstopmode' -pdf -bibtex -f %f"))
+
+#+end_src
+
+
+
+* Magit -- gotta love git
+
+#+begin_src emacs-lisp :tangle yes
+(use-package magit
+  :init (setq magit-diff-options '("-b")) ; ignore whitespace
+  :bind ("C-x g" . magit-status)
+ )
+
+#+end_src
+
+* Misc packages
+Who doesn't love markdown mode. I know I do. Go for GitHub markdown as necessary.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package writeroom-mode
+ )
+#+end_src
+
+** Let's get something interesting to read, using RSS feeds
+
+#+begin_src emacs-lisp :tangle yes
+;; use an org file to organise feeds
+(use-package elfeed-org
+  :ensure t
+  :config
+  (elfeed-org)
+  (setq rmh-elfeed-org-files (list "~/NAS/Org/rssFeeds.org")))
+
+(global-set-key (kbd "C-x w") 'elfeed)
+#+end_src

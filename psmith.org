@@ -1,5 +1,5 @@
 #+TITLE: Peter Smith's emacs configuration file
-#+SEQ_TODO: FIXME FIXED 
+
 
 * General configuration
 ** About this file
@@ -287,7 +287,7 @@ Some code to render `README.md` more like github when I do `C-c C-c v` (Markdown
 
 * eMail with mu4e
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp :tangle no
 (require 'mu4e)
 
 ;; these are actually the defaults
@@ -322,7 +322,7 @@ Some code to render `README.md` more like github when I do `C-c C-c v` (Markdown
 
 * mu4e and sending email
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp :tangle no
 
 ;; tell message-mode how to send mail
 (setq message-send-mail-function 'smtpmail-send-it)
@@ -460,7 +460,7 @@ Set up some useful key bindings
 (global-set-key "\C-cb" 'org-iswitchb)
 (global-set-key "\C-cc" 'org-capture)
 (global-set-key (kbd "<f12>") 'org-agenda)
-(global-set-key (kbd "<f10>") 'org-archive-subtree-default)
+;;(global-set-key (kbd "<f10>") 'org-archive-subtree-default)
 
 
 #+end_src

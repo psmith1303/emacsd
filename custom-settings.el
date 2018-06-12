@@ -23,7 +23,7 @@
 		("/usr/home/psmith/NAS/Work/Research/PapersInProgress/KnowledgeProfessionsAI/K-PSFs-AI.org" "/home/psmith/NAS/Org/calendar.org" "/home/psmith/NAS/Org/diary.org" "/home/psmith/NAS/Org/flagged.org" "/home/psmith/NAS/Org/gtd.org" "/home/psmith/NAS/Org/journal.org" "/home/psmith/NAS/Org/refile.org" "/home/psmith/NAS/Org/rssFeeds.org")))
  '(package-selected-packages
 	 (quote
-		(elfeed-org magit notmuch org-pdfview pdf-tools writeroom-mode auctex color-theme-sanityinc-tomorrow zenburn-theme markdown-mode use-package org-plus-contrib)))
+		(go-mode elfeed-org magit notmuch org-pdfview pdf-tools writeroom-mode auctex color-theme-sanityinc-tomorrow zenburn-theme markdown-mode use-package org-plus-contrib)))
  '(preview-TeX-style-dir "/home/psmith/.emacs.d/elpa/auctex-11.89.7/latex" t)
  '(reftex-use-multiple-selection-buffers t)
  '(send-mail-function (quote smtpmail-send-it)))

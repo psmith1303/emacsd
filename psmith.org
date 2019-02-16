@@ -33,8 +33,15 @@ Here's how we start:
 
 #+BEGIN_SRC emacs-lisp :tangle yes
 (setq user-full-name "Peter Smith"
-      user-mail-address "mail@petersmith.org")
+      user-mail-address "mail@petersmith.org"
+      calendar-latitude -36.848461
+      calendar-longitude 174.763336
+      calendar-location-name "Auckland, NZ")
+                        
 #+END_SRC
+
+#+RESULTS:
+: Auckland, NZ
 
 ** Emacs initialization
 
@@ -62,7 +69,7 @@ after adding these for the first time.
 (global-set-key [(shift delete)] 'clipboard-kill-region)
 (global-set-key [(control insert)] 'clipboard-kill-ring-save)
 (global-set-key [(shift insert)] 'clipboard-yank)
-
+(global-set-key (kbd "C-z") 'undo)
 
 ;;quickly open my gtd file - "M-x gtd"
 ;;
@@ -79,10 +86,52 @@ Some of this was taken from https://github.com/technomancy/better-defaults/blob/
 If working on two files with the same name, but in different locations, tweak the name to show that.
 
 #+begin_src emacs-lisp :tangle yes
-(require 'uniquify)
-  (setq uniquify-buffer-name-style 'forward)
-;; Start the day of the week on a Monday
-(setq calendar-week-start-day 1)
+
+(require 'uniquify);; These functions are useful. Activate them.
+(put 'downcase-region 'disabled nil)
+(put 'upcase-region 'disabled nil)
+(put 'narrow-to-region 'disabled nil)
+(put 'dired-find-alternate-file 'disabled nil)
+
+;; Answering just 'y' or 'n' will do
+(defalias 'yes-or-no-p 'y-or-n-p)
+
+;; Keep all backup and auto-save files in one directory
+(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+(setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list/" t)))
+
+;; UTF-8 please
+(setq locale-coding-system 'utf-8) ; pretty
+(set-terminal-coding-system 'utf-8) ; pretty
+(set-keyboard-coding-system 'utf-8) ; pretty
+(set-selection-coding-system 'utf-8) ; please
+(prefer-coding-system 'utf-8) ; with sugar on top
+(setq-default indent-tabs-mode nil)
+
+;; Turn off the blinking cursor
+(blink-cursor-mode -1)
+
+(setq-default indent-tabs-mode nil)
+(setq-default indicate-empty-lines t)
+
+;; Don't count two spaces after a period as the end of a sentence.
+;; Just one space is needed.
+(setq sentence-end-double-space nil)
+
+;; delete the region when typing, just like as we expect nowadays.
+(delete-selection-mode t)
+
+(show-paren-mode t)
+
+(column-number-mode t)
+
+(global-visual-line-mode)
+(diminish 'visual-line-mode)
+
+(setq uniquify-buffer-name-style 'forward)
+
+;; Don't beep at me
+(setq visible-bell t)
 
 ;; and lets use ido
 (setq ido-enable-flex-matching t)
@@ -105,11 +154,6 @@ It's always good to be able to see matching parens
 
 *** Backups
 
-This is one of the things people usually want to change right away. By default, Emacs saves backup files in the current directory. These are the files ending in =~= that are cluttering up your directory lists. The following code stashes them all in =~/.emacs.d/backups=, where I can find them with =C-x C-f= (=find-file=) if I really need to.
-
-#+BEGIN_SRC emacs-lisp :tangle yes
-(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
-#+END_SRC
 
 Disk space is cheap. Save lots.
 
@@ -233,27 +277,27 @@ I almost always want to go to the right indentation on the next line.
 
 #+end_src
 
+** Fixes for putty
+The keyboard is broken when using Putty :(, so lets fix the home and end keys.
+
+#+begin_src emacs-lisp :tangle yes
+;; PuTTY fix. Ugly. Bad. But it works. (Good)
+(define-key global-map "\M-[1~" 'beginning-of-line)
+(define-key global-map [select] 'end-of-line)
+#+end_src
+
+** Fix Undo
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-z") 'undo)
+#+begin_end
+
 ** Spelling
 Let's get our spelling rite.  This also sets up using mouse-3 instead of mouse-2 for fixing spelling errors; that gets over a problem with text being inserted from the X-windows paste buffer.
 
 #+begin_src emacs-lisp :tangle yes
-;; find aspell and hunspell automatically
-(cond
- ;; try hunspell at first
-  ;; if hunspell does NOT exist, use aspell
- ((executable-find "hunspell")
-  (setq ispell-program-name "hunspell")
-  (setq ispell-local-dictionary "en_GB")
-  (setq ispell-local-dictionary-alist
-        ;; Please note the list `("-d" "en_GB")` contains ACTUAL parameters passed to hunspell
-        ;; You could use `("-d" "en_GB,en_US-med")` to check with multiple dictionaries
-        '(("en_GB" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_GB") nil utf-8)
-          )))
-
- ((executable-find "aspell")
-  (setq ispell-program-name "aspell")
-  ;; Please note ispell-extra-args contains ACTUAL parameters passed to aspell
-  (setq ispell-extra-args '("--sug-mode=ultra" "--lang=en_US"))))
+(setq ispell-really-hunspell t)
+(setq ispell-program-name "hunspell")
+(setq ispell-local-dictionary "en_GB")
 
 (autoload 'flyspell-mode "flyspell" "On-the-fly spelling checker." t)
 (add-hook 'LaTeX-mode-hook 'flyspell-mode)
@@ -473,12 +517,18 @@ Then I set up things so org-mode applies to .org and .org_archive files.
 
 ;; Capturing stuff
 (setq org-directory "~/NAS/Org")
-(setq org-default-notes-file "~/NAS/Org/refile.org")
-(setq org-agenda-files (list "~/NAS/Org"))
+(setq org-default-notes-file "~/NAS/Org/inbox.org")
+(setq org-agenda-files (list "~/NAS/Org" "~/NAS/Org/Calendars"))
 
 (add-to-list 'auto-mode-alist '("\\.\\(org\\|org_archive\\)$" . org-mode))
 
-(setq org-agenda-start-on-weekday 1) ; The week starts on Monday
+;; The agenda starts on yesterday for 9 days
+(setq org-agenda-start-day "-1d")
+(setq org-agenda-span 9)
+(setq org-agenda-start-on-weekday nil)
+; calendar starts on a Monday
+(setq calendar-week-start-day 1)
+
 (setq org-sort-agenda-notime-is-late nil)
 (setq org-time-stamp-custom-formats (quote ("<%d/%m/%y %a>" . "<%d/%m/%y %a %H:%M>")))
 
@@ -486,6 +536,9 @@ Then I set up things so org-mode applies to .org and .org_archive files.
 (add-hook 'org-agenda-mode-hook
           '(lambda () (hl-line-mode 1))
           'append)
+
+;; Automatically reload buffers if the file on disk changes
+(add-hook 'org-mode-hook 'auto-revert-mode)
 
 #+end_src
 
@@ -504,9 +557,15 @@ Then I set up things so org-mode applies to .org and .org_archive files.
 #+END_src
 
 ** Tasks and states
-I use one set of TODO keywords for all of my org files. Org-mode lets you define TODO keywords per file but I find it's easier to have a standard set of TODO keywords globally so I can use the same setup in any org file I'm working with.
+I use one set of TODO keywords for all of my org files. Org-mode lets
+you define TODO keywords per file but I find it's easier to have a
+standard set of TODO keywords globally so I can use the same setup in
+any org file I'm working with.
 
-The only exception to this is this document; since I don't want org-mode hiding the TODO keyword when it appears in headlines. I've set up a dummy #+SEQ_TODO: FIXME FIXED entry at the top of this file just to leave my TODO keyword untouched in this document.
+The only exception to this is this document; since I don't want
+org-mode hiding the TODO keyword when it appears in headlines. I've
+set up a dummy #+SEQ_TODO: FIXME FIXED entry at the top of this file
+just to leave my TODO keyword untouched in this document.
 
 **** TODO key words
  #+begin_src emacs-lisp :tangle yes
@@ -524,6 +583,7 @@ The only exception to this is this document; since I don't want org-mode hiding 
                ("PHONE" :foreground "forest green" :weight bold))))
  #+end_src
 
+
 **** Fast Todo Selection
 
  Fast todo selection allows changing from any task todo state to any other state directly by selecting the appropriate key from the fast todo selection key menu. This is a great feature!
@@ -539,6 +599,26 @@ The only exception to this is this document; since I don't want org-mode hiding 
 
  (setq org-treat-S-cursor-todo-selection-as-state-change nil)
  #+end_src
+
+** Stuck projects
+
+   So this is for use with org agenda, stuck project ~*C-c a #*~
+
+   Dead projects, those that should not be considered stuck are any of:
+
+   - Cancelled projects
+   - Cancelled papers
+   - Someday
+   - 
+
+
+ #+begin_src emacs-lisp :tangle yes
+
+(setq org-stuck-projects
+      '("+PROJECT-CANCELLED|+PAPER-CANCELLED|+SOMEDAY" ("NEXT" "TODO" "DONE" "") ("@Errands")
+        "\\<IGNORE\\>"))
+#+end_src
+
 
 ** Agenda views
 Try and get everything I need on to one page.
@@ -634,7 +714,7 @@ And then some code to handle the heavy lifting with agenda views.
           (subtree-end (save-excursion (org-end-of-subtree t))))
       (if (member (org-get-todo-state) org-todo-keywords-1)
           (if (member (org-get-todo-state) org-done-keywords)
-              (let* ((daynr (string-to-int (format-time-string "%d" (current-time))))
+              (let* ((daynr (string-to-number (format-time-string "%d" (current-time))))
                      (a-month-ago (* 60 60 24 (+ daynr 1)))
                      (last-month (format-time-string "%Y-%m-" (time-subtract (current-time) (seconds-to-time a-month-ago))))
                      (this-month (format-time-string "%Y-%m-" (current-time)))
@@ -920,9 +1000,6 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
               ("TODO" ("WAITING") ("CANCELLED") ("HOLD"))
               ("NEXT" ("WAITING") ("CANCELLED") ("HOLD"))
               ("DONE" ("WAITING") ("CANCELLED") ("HOLD")))))
-;;
-;; Disable the default stuck project handling
-(setq org-stuck-projects (quote ("" nil nil "")))
 
 ;; Org-bibtex
 ;;	
@@ -972,19 +1049,19 @@ maintaining my org-capture templates when I add a new org
 #+begin_src emacs-lisp :tangle yes
 ;; Capture templates for: TODO tasks, Notes, appointments, phone calls, and org-protocol
 (setq org-capture-templates
-      (quote (("t" "todo" entry (file "~/NAS/Org/refile.org")
+      (quote (("t" "todo" entry (file "~/NAS/Org/inbox.org")
 							 "* TODO [#A] %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+2d\"))\n %i\n %a")
-              ("r" "respond" entry (file "~/NAS/Org/refile.org")
+              ("r" "respond" entry (file "~/NAS/Org/inbox.org")
                "* NEXT Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n")
-              ("n" "note" entry (file "~/NAS/Org/refile.org")
+              ("n" "note" entry (file "~/NAS/Org/inbox.org")
                "* %? :NOTE:\n%U\n%a\n")
               ("j" "Journal/Blog" entry (file+datetree "~/NAS/Org/journal.org")
                "* %?\n%U\n")
-              ("w" "org-protocol" entry (file "~/NAS/Org/refile.org")
+              ("w" "org-protocol" entry (file "~/NAS/Org/inbox.org")
                "* TODO Review %c\n%U\n")
-              ("p" "Phone call" entry (file "~/NAS/Org/refile.org")
+              ("p" "Phone call" entry (file "~/NAS/Org/inbox.org")
                "* PHONE %? :PHONE:\n%U")
-              ("h" "Habit" entry (file "~/NAS/Org/refile.org")
+              ("h" "Habit" entry (file "~/NAS/Org/inbox.org")
                "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"<%Y-%m-%d %a .+1d/3d>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n"))))
 
 
@@ -995,6 +1072,110 @@ maintaining my org-capture templates when I add a new org
 (setq org-archive-mark-done nil)
 (setq org-archive-location "%s_archive::* Archived Tasks")
 #+end_src
+
+** Sort out blank lines nicely
+#+begin_src emacs-lisp :tangle yes
+;;;###autoload
+(defun ps/org-fix-blank-lines (prefix)
+  "Ensure that blank lines exist between headings and between headings and their contents.
+With prefix, operate on whole buffer. Ensures that blank lines
+exist after each headings's drawers."
+  (interactive "P")
+  (org-map-entries (lambda ()
+                     (org-with-wide-buffer
+                      ;; `org-map-entries' narrows the buffer, which prevents us from seeing
+                      ;; newlines before the current heading, so we do this part widened.
+                      (while (not (looking-back "\n\n" nil))
+                        ;; Insert blank lines before heading.
+                        (insert "\n")))
+                     (let ((end (org-entry-end-position)))
+                       ;; Insert blank lines before entry content
+                       (forward-line)
+                       (while (and (org-at-planning-p)
+                                   (< (point) (point-max)))
+                         ;; Skip planning lines
+                         (forward-line))
+                       (while (re-search-forward org-drawer-regexp end t)
+                         ;; Skip drawers. You might think that `org-at-drawer-p' would suffice, but
+                         ;; for some reason it doesn't work correctly when operating on hidden text.
+                         ;; This works, taken from `org-agenda-get-some-entry-text'.
+                         (re-search-forward "^[ \t]*:END:.*\n?" end t)
+                         (goto-char (match-end 0)))
+                       (unless (or (= (point) (point-max))
+                                   (org-at-heading-p)
+                                   (looking-at-p "\n"))
+                         (insert "\n"))))
+                   t (if prefix
+                         nil
+                       'tree)))
+#+end_src
+
+** Allow sunrise and sunset seperately in the calendar
+I like to know if it's going to be day or night (well if there will be
+daylight) when I do stuff.
+
+These functions allow me to add this to may calendar.org
+
+: * Sunrise and Sunset
+: %%(diary-sunrise)
+: %%(diary-sunset)
+
+
+#+begin_src emacs-lisp :tangle yes
+
+(require 'solar)
+
+;; Sunrise (edits by Eph Zero)
+;; Brady Trainor
+;; http://stackoverflow.com/questions/22889036/custom-diary-sunrise-function-not-working-autoload-diary-emacs
+
+(defun solar-sunrise-string (date &optional nolocation)
+  "String of *local* time of sunrise and daylight on Gregorian DATE."
+  (let ((l (solar-sunrise-sunset date)))
+    (format
+     "%s (%s hours daylight)"
+     (if (car l)
+     (concat "Sunrise " (apply 'solar-time-string (car l)))
+       "no sunrise")
+     (nth 2 l)
+     )))
+;; To be called from diary-list-sexp-entries, where DATE is bound.
+;;;###diary-autoload
+(defun diary-sunrise ()
+  "Local time of sunrise as a diary entry.
+  Accurate to a few seconds."
+  (or (and calendar-latitude calendar-longitude calendar-time-zone)
+      (solar-setup))
+  (solar-sunrise-string date))
+
+
+  ;; Sunset
+  ;; Brady Trainor
+  ;; http://stackoverflow.com/questions/22889036/custom-diary-sunrise-function-not-working-autoload-diary-emacs
+
+  (defun solar-sunset-string (date &optional nolocation)
+  "String of *local* time of sunset and daylight on Gregorian DATE."
+  (let ((l (solar-sunrise-sunset date)))
+    (format
+     "%s (%s hours daylight)"
+     (if (cadr l)
+     (concat "Sunset " (apply 'solar-time-string (cadr l)))
+       "no sunset")
+     (nth 2 l)
+     )))
+;; To be called from diary-list-sexp-entries, where DATE is bound.
+;;;###diary-autoload
+(defun diary-sunset ()
+  "Local time of sunset as a diary entry.
+  Accurate to a few seconds."
+  (or (and calendar-latitude calendar-longitude calendar-time-zone)
+      (solar-setup))
+  (solar-sunset-string date))
+
+  (provide 'sunrise-sunset)
+
+#+end_src
+
 
 * Hugo mode
 
@@ -1175,6 +1356,13 @@ Who doesn't love markdown mode. I know I do. Go for GitHub markdown as necessary
  )
 #+end_src
 
+Let's make emacs a little prettier
+#+begin_src emacs-lisp :tangle yes
+(require 'solarized-theme)
+(load-theme 'solarized-dark)
+(setq x-underline-at-descent-line t)
+
+#+end_src
 ** Let's get something interesting to read, using RSS feeds
 
 #+begin_src emacs-lisp :tangle yes
@@ -1187,3 +1375,67 @@ Who doesn't love markdown mode. I know I do. Go for GitHub markdown as necessary
 
 (global-set-key (kbd "C-x w") 'elfeed)
 #+end_src
+
+* Ox-reveal
+
+This is based on Scott Nesbitt's post [[https://opensource.com/article/18/2/how-create-slides-emacs-org-mode-and-revealjs][How to create slides with Emacs
+Org mode and Reveal.js]] where he says:
+
+You'll also need to install Org-Reveal, and grab a copy of the
+Reveal.js archive. You can unpack Reveal.js anywhere you like. I put
+it in the folder ~/slides/reveal.js, where I store my slides.
+
+Once you've done all that, add the following to your .emacs file to
+integrate Org-Reveal into Emacs:
+
+#+begine_src emacs-lisp :tangle yes
+;; Reveal.js + Org mode
+(require 'ox-reveal)
+(setq Org-Reveal-root "file://reveal.js")
+(setq Org-Reveal-title-slide nil)
+#+end_src
+
+In the above, path-to-reveal.js is where you unpacked the Reveal.js
+archive. In my setup, that entry is
+file:///home/scott/slides/reveal.js.
+
+That was a bit of work. Luckily, you only need to do it once. Now,
+you're ready to go.
+
+** Creating your slide deck and slides
+Fire up Emacs and create a new file. Name the file whatever you want,
+but make sure it has the extension .org. The extension tells Emacs
+it's an Org mode file. Whenever you open a file with that extension,
+Emacs applies the correct syntax highlighting and makes the Org menu
+available on the menu bar.
+
+Add the following information to the top of the file:
+
+#+begin_src emacs-lisp :tangle no
+#+OPTIONS: num:nil toc:nil
+#+REVEAL_TRANS: None/Fade/Slide/Convex/Concave/Zoom
+#+REVEAL_THEME: Black/White/League/Sky/Beige/Simple/Serif/Blood/Night/Moon/Solarized
+#+Title: Title of Your Talk
+#+Author: Your Name
+#+Email: Your Email Address or Twitter Handle
+#+end_src
+
+That block is like metadata for your slide deck. Let's look at the
+first three items in that block:
+
+num:nil and toc:nil suppress the numbering of headings and the
+creation of a table of contents when you generate your slides
+#REVEAL_TRANS controls the transition effect when you move between
+slides. I usually go with None, but feel free to experiment
+#REVEAL_THEME controls the look of the slides. I usually stick with
+Black or White, but, again, feel free to experiment Add a heading
+after the metadata block by typing an asterisk, followed by a space,
+followed by some text. This will be the title slide. (Make the title a
+good one!)
+
+If you want to add your name below the title, press Enter. Emacs adds
+a blank, indented space below the heading. Type your name, and any
+other information, in that space.
+
+Add new slides to the deck by adding headings (text with an asterisk
+and space in front of it, remember?) to the file. Simple, isn't it?

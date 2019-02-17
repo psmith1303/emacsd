@@ -286,10 +286,6 @@ The keyboard is broken when using Putty :(, so lets fix the home and end keys.
 (define-key global-map [select] 'end-of-line)
 #+end_src
 
-** Fix Undo
-#+begin_src emacs-lisp :tangle yes
-(global-set-key (kbd "C-z") 'undo)
-#+end_src
 
 ** Spelling
 Let's get our spelling rite.  This also sets up using mouse-3 instead of mouse-2 for fixing spelling errors; that gets over a problem with text being inserted from the X-windows paste buffer.

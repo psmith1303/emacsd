@@ -22,13 +22,14 @@
 ;; Bootstrap 'use-package' and 'org-mode
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
+  (package-install 'diminish)
   (package-install 'use-package))
 (unless (package-installed-p 'org-plus-contrib)
   (package-refresh-contents)
   (package-install 'org-plus-contrib))
 
 (eval-when-compile
-(require 'use-package))
+  (require 'use-package))
 (require 'diminish)
 (require 'bind-key)
 

@@ -20,7 +20,7 @@
  '(initial-frame-alist (quote ((fullscreen . maximized))))
  '(package-selected-packages
    (quote
-    (ox-reveal color-theme solarized-theme go-mode elfeed-org magit org-pdfview pdf-tools writeroom-mode auctex color-theme-sanityinc-tomorrow zenburn-theme markdown-mode use-package org-plus-contrib)))
+    (org-ref ebib ox-reveal color-theme solarized-theme go-mode elfeed-org magit org-pdfview pdf-tools writeroom-mode auctex color-theme-sanityinc-tomorrow zenburn-theme markdown-mode use-package org-plus-contrib)))
  '(preview-TeX-style-dir "/home/psmith/.emacs.d/elpa/auctex-11.89.7/latex" t)
  '(reftex-use-multiple-selection-buffers t)
  '(send-mail-function (quote smtpmail-send-it)))

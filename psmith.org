@@ -294,6 +294,11 @@ Let's get our spelling rite.  This also sets up using mouse-3 instead of mouse-2
 (setq ispell-really-hunspell t)
 (setq ispell-program-name "hunspell")
 (setq ispell-local-dictionary "en_GB")
+(setq ispell-local-dictionary-alist
+        ;; Please note the list `("-d" "en_US")` contains ACTUAL parameters passed to hunspell
+        ;; You could use `("-d" "en_US,en_US-med")` to check with multiple dictionaries
+        '(("en_GB" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_GB") nil utf-8)
+          ))
 
 (autoload 'flyspell-mode "flyspell" "On-the-fly spelling checker." t)
 (add-hook 'LaTeX-mode-hook 'flyspell-mode)
@@ -304,6 +309,9 @@ Let's get our spelling rite.  This also sets up using mouse-3 instead of mouse-2
 
 (define-key flyspell-mouse-map [down-mouse-3] #'flyspell-correct-word)
 #+end_src
+
+#+RESULTS:
+: flyspell-correct-word
 
 * Markdown-mode
 Who doesn't love markdown mode. I know I do. Go for GitHub markdown as necessary.
@@ -1173,6 +1181,59 @@ These functions allow me to add this to may calendar.org
 #+end_src
 
 
+** APA6 styled exporting
+   So =C-c C-e l p= will export the current org file to a PDF. This little bit of magic will format stuff as APA6 headings etc. The org documnet needs some kind of heading like this:
+
+#+BEGIN_COMMENT
+#+TITLE: Using Emacs and Org-mode Research Writing in Social Sciences
+#+SUBTITLE: Some stuff I have learnt
+#+AUTHOR: Peter Smith
+#+Latex_header: \affiliation{The University of Auckland}
+#+EMAIL: p.smith@auckland.ac.nz
+
+# Set the article class
+#+LaTeX_CLASS: apa6
+
+#+LATEX_HEADER: \usepackage{lipsum}
+# No need for a table of contents, unless your paper is quite long.
+#+OPTIONS: toc:nil 
+
+# No need for a numbering headings
+#+OPTIONS: num:nil 
+
+# No need for subscripts on _ as it breaks citations
+#+OPTIONS: ^:nil
+
+#+END_COMMENT
+
+
+#+begin_src emacs-lisp :tangle yes
+(add-to-list 'org-latex-classes
+'("apa6"
+"\\documentclass[doc,noextraspace,11pt,a4paper]{apa6}
+\\usepackage[T1]{fontenc}
+\\usepackage[british]{babel}
+\\usepackage[hyphens]{url}
+\\usepackage{amsmath}
+\\usepackage{csquotes}
+\\usepackage{graphicx}
+\\usepackage{hyperref}
+\\usepackage{enumitem}
+\\usepackage{mathpazo}
+\\setlist[enumerate,itemize]{noitemsep,nolistsep,leftmargin=*}
+
+\\usepackage[backend=biber,style=apa]{biblatex}
+\\DeclareLanguageMapping{british}{british-apa}
+\\addbibresource{/home/psmith/NAS/Work/Research/Citations/bibs/psmithLibrary.bib}
+[NO-DEFAULT-PACKAGES]
+[NO-PACKAGES]"
+("\\section{%s}" . "\\section*{%s}")
+("\\subsection{%s}" . "\\subsection*{%s}")
+("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+))
+
+#+end_src
+
 * Hugo mode
 
 
@@ -1227,6 +1288,7 @@ These functions allow me to add this to may calendar.org
       (message "Blog published"))))
 
 #+end_src
+
 
 
 
@@ -1300,9 +1362,14 @@ This hooks in reftex and allows pandoc/markdown formatted citations to be insert
 ;; RefTeX formats for biblatex (not natbib)
 (setq reftex-cite-format
       '(
-        (?\C-m . "\\cite[]{%l}")
+        (?\C-m . "\\autocite[]{%l}")
         (?t . "\\textcite{%l}")
-        (?a . "\\autocite[]{%l}")
+        (?c . "\\cite[]{%l}")
+        (?e . "\\autocite[e.g.,][]{%l}")
+        (?s . "\\autocite[see]{%l}")
+        (?a . "\\citeauthor{%l}")
+        (?y . "\\citeyear{%l}")
+
         (?p . "\\parencite{%l}")
         (?f . "\\footcite[][]{%l}")
         (?F . "\\fullcite[]{%l}")
@@ -1331,6 +1398,9 @@ This hooks in reftex and allows pandoc/markdown formatted citations to be insert
   '("latexmk -pdflatex='pdflatex -interaction nonstopmode' -pdf -bibtex -f %f"))
 
 #+end_src
+
+#+RESULTS:
+| latexmk -pdflatex='pdflatex -interaction nonstopmode' -pdf -bibtex -f %f |
 
 
 
